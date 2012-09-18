@@ -1,6 +1,6 @@
 # marked
 
-A full-featured markdown parser and compiler.
+A full-featured markdown parser and compiler, written in javascript.
 Built for speed.
 
 ## Benchmarks
@@ -19,12 +19,13 @@ node v0.6.x
 
 ``` bash
 $ node test --bench
-marked completed in 6485ms.
-marked (with gfm) completed in 7466ms.
-discount completed in 7169ms.
-showdown (reuse converter) completed in 15937ms.
-showdown (new converter) completed in 18279ms.
-markdown-js completed in 23572ms.
+marked completed in 6448ms.
+marked (gfm) completed in 7357ms.
+marked (pedantic) completed in 6092ms.
+discount completed in 7314ms.
+showdown (reuse converter) completed in 16018ms.
+showdown (new converter) completed in 18234ms.
+markdown-js completed in 24270ms.
 ```
 
 __Marked is now faster than Discount, which is written in C.__
@@ -33,15 +34,13 @@ For those feeling skeptical: These benchmarks run the entire markdown test suite
 1000 times. The test suite tests every feature. It doesn't cater to specific
 aspects.
 
-Benchmarks for other engines to come (?).
-
 ## Install
 
 ``` bash
 $ npm install marked
 ```
 
-## Another javascript markdown parser
+## Another Javascript Markdown Parser
 
 The point of marked was to create a markdown compiler where it was possible to
 frequently parse huge chunks of markdown without having to worry about
@@ -61,17 +60,41 @@ disadvantage in the benchmarks above.
 Along with implementing every markdown feature, marked also implements
 [GFM features](http://github.github.com/github-flavored-markdown/).
 
+## Options
+
+marked has 4 different switches which change behavior.
+
+- __pedantic__: Conform to obscure parts of `markdown.pl` as much as possible.
+  Don't fix any of the original markdown bugs or poor behavior.
+- __gfm__: Enable github flavored markdown (enabled by default).
+- __sanitize__: Sanitize the output. Ignore any HTML that has been input.
+- __highlight__: A callback to highlight code blocks.
+
+None of the above are mutually exclusive/inclusive.
+
 ## Usage
 
 ``` js
-var marked = require('marked');
+// Set default options
+marked.setOptions({
+  gfm: true,
+  pedantic: false,
+  sanitize: true,
+  // callback for code highlighter
+  highlight: function(code, lang) {
+    if (lang === 'js') {
+      return javascriptHighlighter(code);
+    }
+    return code;
+  }
+});
 console.log(marked('i am using __markdown__.'));
 ```
 
 You also have direct access to the lexer and parser if you so desire.
 
 ``` js
-var tokens = marked.lexer(str);
+var tokens = marked.lexer(text);
 console.log(marked.parser(tokens));
 ```
 
@@ -79,7 +102,8 @@ console.log(marked.parser(tokens));
 $ node
 > require('marked').lexer('> i am using marked.')
 [ { type: 'blockquote_start' },
-  { type: 'text', text: ' i am using marked.' },
+  { type: 'paragraph',
+    text: 'i am using marked.' },
   { type: 'blockquote_end' },
   links: {} ]
 ```
@@ -92,40 +116,6 @@ hello world
 ^D
 $ cat hello.html
 <p>hello world</p>
-```
-
-## Syntax Highlighting
-
-Marked has an interface that allows for a syntax highlighter to highlight code
-blocks before they're output.
-
-Example implementation:
-
-``` js
-var highlight = require('my-syntax-highlighter')
-  , marked_ = require('marked');
-
-var marked = function(text) {
-  var tokens = marked_.lexer(text)
-    , l = tokens.length
-    , i = 0
-    , token;
-
-  for (; i < l; i++) {
-    token = tokens[i];
-    if (token.type === 'code') {
-      token.text = highlight(token.text, token.lang);
-      // marked should not escape this
-      token.escaped = true;
-    }
-  }
-
-  text = marked_.parser(tokens);
-
-  return text;
-};
-
-module.exports = marked;
 ```
 
 ## License
